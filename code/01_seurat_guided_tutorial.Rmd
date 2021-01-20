@@ -9,7 +9,13 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Guided tutorial --- 2,700 PBMCs
+### Guided tutorial --- 2,700 PBMCs
+
+#Data 
+
+min.cells: Include cells where at least this many features are detected.
+
+min.features: Include features detected in at least this many cells. Will subset the counts matrix as well. To reintroduce excluded features, create a new object with a lower cutoff.
 
 ```{r data}
 library(dplyr)
@@ -17,7 +23,7 @@ library(Seurat)
 library(patchwork)
 
 # Load the PBMC dataset
-pbmc.data <- Read10X(data.dir = "../data/pbmc3k/filtered_gene_bc_matrices/hg19/")
+pbmc.data <- Read10X(data.dir = "C:\\Users\\alva\\Desktop\\exjobb_master\\data\\filtered_gene_bc_matrices\\hg19\\")
 
 # Initialize the Seurat object with the raw (non-normalized data).
 pbmc <- CreateSeuratObject(counts = pbmc.data, project = "pbmc3k", min.cells = 3, min.features = 200)
@@ -25,3 +31,169 @@ pbmc
 
 ```
 
+#QC
+- Number of unique genes detected in cell
+- Total number of molecules detetcted 
+- Percentage of genes mapped to the mitochondiral genome 
+
+```{r QC}
+# Show QC metrics for the first 5 cells
+head(pbmc@meta.data, 5)
+
+# Calculate the percentage of mitochondrial features (qc)
+pbmc[["percent.mt"]] <- PercentageFeatureSet(pbmc, pattern = "^MT-")
+
+# Visualize QC metrics as a violin plot
+VlnPlot(pbmc, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+
+# FeatureScatter is typically used to visualize feature-feature relationships, but can be used
+# for anything calculated by the object, i.e. columns in object metadata, PC scores etc.
+plot1 <- FeatureScatter(pbmc, feature1 = "nCount_RNA", feature2 = "percent.mt")
+plot2 <- FeatureScatter(pbmc, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+plot1 + plot2
+
+# Remove low quality data
+pbmc <- subset(pbmc, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & percent.mt < 5)
+```
+
+#Normalization
+
+```{r normalization}
+
+#"LogNormalize" normalizes the feature expression measurements for each cell by the total expression, multiplies this by a scale factor (10,000 by default), and log-transforms the result.
+pbmc <- NormalizeData(pbmc, normalization.method = "LogNormalize", scale.factor = 10000)
+
+```
+
+#Feature Selection 
+
+Calculate features that exibit high cell-to-cell variance. 
+
+```{r feature selection}
+ 
+# Directly model the mean-variance relationship inherent in single-cell data
+pbmc <- FindVariableFeatures(pbmc, selection.method = "vst", nfeatures = 2000)
+
+# Identify the 10 most highly variable genes
+top10 <- head(VariableFeatures(pbmc), 10)
+
+# plot variable features with and without labels
+plot1 <- VariableFeaturePlot(pbmc)
+plot2 <- LabelPoints(plot = plot1, points = top10, repel = TRUE)
+plot1 + plot2
+
+```
+
+#Scaling Data 
+
+Linear transformation to shift expression of each gene so that mean across cells is 0 and so that variance across cells is 1. 
+
+```{r scaling}
+# Only scales the selected features. If all genes wanted add: features = all.genes
+pbmc <- ScaleData(pbmc)
+
+```
+
+#PCA 
+```{r PCA}
+
+# PCA on scaled selecte features 
+pbmc <- RunPCA(pbmc, features = VariableFeatures(object = pbmc))
+
+# Plot PCA 
+DimPlot(pbmc, reduction = "pca")
+
+# Heatmap (Setting cells to a number plots the 'extreme' cells on both ends of the spectrum, which dramatically speeds plotting for large datasets)
+DimHeatmap(pbmc, dims = 1, cells = 500, balanced = TRUE)
+
+```
+
+#Determine Dimensionallity 
+
+The top PCA features represent a robust compression of the dataset. How to choose how many PCA features to inlcude? 
+
+```{r dimensions}
+# NOTE: This process can take a long time for big datasets, comment out for expediency. More
+# approximate techniques such as those implemented in ElbowPlot() can be used to reduce
+# computation time
+pbmc <- JackStraw(pbmc, num.replicate = 100)
+pbmc <- ScoreJackStraw(pbmc, dims = 1:20)
+
+#Plot 
+JackStrawPlot(pbmc, dims = 1:15)
+
+# Elbowplot (plots the variance explained by each PC)
+ElbowPlot(pbmc)
+```
+
+#Cluster Cells
+
+Method: construct KNN graph based on eucledian distance in PCA space, refince edgeweights between neighbors based on shared overlap in neighborhood (Jaccard similaity). Iteratively group cells together by optemizing some function. 
+
+```{r cluster}
+pbmc <- FindNeighbors(pbmc, dims = 1:10)
+pbmc <- FindClusters(pbmc, resolution = 0.5)
+
+# Look at cluster IDs of the first 5 cells
+head(Idents(pbmc), 5)
+```
+
+#Non-linear Dimensional Reduction 
+
+tSNE or UMAP
+
+```{r dimensional reduction}
+# Install UMAP: reticulate::py_install(packages = 'umap-learn')
+pbmc <- RunUMAP(pbmc, dims = 1:10)
+DimPlot(pbmc, reduction = "umap")
+
+``` 
+
+#Cluster Biomarkers 
+
+```{r cluster biomarkers}
+# find all markers of cluster 1
+cluster1.markers <- FindMarkers(pbmc, ident.1 = 1, min.pct = 0.25)
+head(cluster1.markers, n = 5)
+
+# find all markers distinguishing cluster 5 from clusters 0 and 3
+cluster5.markers <- FindMarkers(pbmc, ident.1 = 5, ident.2 = c(0, 3), min.pct = 0.25)
+head(cluster5.markers, n = 5)
+
+# find markers for every cluster compared to all remaining cells, report only the positive ones
+pbmc.markers <- FindAllMarkers(pbmc, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
+pbmc.markers %>% group_by(cluster) %>% top_n(n = 2, wt = avg_logFC)
+```
+
+#Visualize Marker Expression 
+
+```{r vis marker exp}
+
+# Violin plot 
+VlnPlot(pbmc, features = c("MS4A1", "CD79A"))
+
+# Plot raw counts as well
+VlnPlot(pbmc, features = c("NKG7", "PF4"), slot = "counts", log = TRUE)
+
+# Scatterplot 
+FeaturePlot(pbmc, features = c("MS4A1", "GNLY", "CD3E", "CD14", "FCER1A", "FCGR3A", "LYZ", "PPBP", 
+    "CD8A"))
+
+# Heatmap 
+top10 <- pbmc.markers %>% group_by(cluster) %>% top_n(n = 10, wt = avg_logFC)
+DoHeatmap(pbmc, features = top10$gene) + NoLegend()
+
+``` 
+
+```{r new cluster ID}
+new.cluster.ids <- c("Naive CD4 T", "Memory CD4 T", "CD14+ Mono", "B", "CD8 T", "FCGR3A+ Mono", 
+    "NK", "DC", "Platelet")
+names(new.cluster.ids) <- levels(pbmc)
+pbmc <- RenameIdents(pbmc, new.cluster.ids)
+DimPlot(pbmc, reduction = "umap", label = TRUE, pt.size = 0.5) + NoLegend()
+
+``` 
+
+```{r save RDS}
+saveRDS(pbmc, file = "..01_seurat_guided_tutorial.rds")
+```
