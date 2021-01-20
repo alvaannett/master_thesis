@@ -195,5 +195,5 @@ DimPlot(pbmc, reduction = "umap", label = TRUE, pt.size = 0.5) + NoLegend()
 ``` 
 
 ```{r save RDS}
-saveRDS(pbmc, file = "..01_seurat_guided_tutorial.rds")
+#saveRDS(pbmc, file = "..01_seurat_guided_tutorial.rds")
 ```
