@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ### Guided tutorial --- 2,700 PBMCs
 
-#Data 
+# Data 
 
 min.cells: Include cells where at least this many features are detected.
 
@@ -31,7 +31,7 @@ pbmc
 
 ```
 
-#QC
+# QC
 - Number of unique genes detected in cell
 - Total number of molecules detetcted 
 - Percentage of genes mapped to the mitochondiral genome 
@@ -56,7 +56,7 @@ plot1 + plot2
 pbmc <- subset(pbmc, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & percent.mt < 5)
 ```
 
-#Normalization
+# Normalization
 
 ```{r normalization}
 
@@ -65,7 +65,7 @@ pbmc <- NormalizeData(pbmc, normalization.method = "LogNormalize", scale.factor 
 
 ```
 
-#Feature Selection 
+# Feature Selection 
 
 Calculate features that exibit high cell-to-cell variance. 
 
@@ -84,7 +84,7 @@ plot1 + plot2
 
 ```
 
-#Scaling Data 
+# Scaling Data 
 
 Linear transformation to shift expression of each gene so that mean across cells is 0 and so that variance across cells is 1. 
 
@@ -94,7 +94,7 @@ pbmc <- ScaleData(pbmc)
 
 ```
 
-#PCA 
+# PCA 
 ```{r PCA}
 
 # PCA on scaled selecte features 
@@ -108,7 +108,7 @@ DimHeatmap(pbmc, dims = 1, cells = 500, balanced = TRUE)
 
 ```
 
-#Determine Dimensionallity 
+# Determine Dimensionallity 
 
 The top PCA features represent a robust compression of the dataset. How to choose how many PCA features to inlcude? 
 
@@ -126,7 +126,7 @@ JackStrawPlot(pbmc, dims = 1:15)
 ElbowPlot(pbmc)
 ```
 
-#Cluster Cells
+# Cluster Cells
 
 Method: construct KNN graph based on eucledian distance in PCA space, refince edgeweights between neighbors based on shared overlap in neighborhood (Jaccard similaity). Iteratively group cells together by optemizing some function. 
 
@@ -138,7 +138,7 @@ pbmc <- FindClusters(pbmc, resolution = 0.5)
 head(Idents(pbmc), 5)
 ```
 
-#Non-linear Dimensional Reduction 
+# Non-linear Dimensional Reduction 
 
 tSNE or UMAP
 
@@ -149,7 +149,7 @@ DimPlot(pbmc, reduction = "umap")
 
 ``` 
 
-#Cluster Biomarkers 
+# Cluster Biomarkers 
 
 ```{r cluster biomarkers}
 # find all markers of cluster 1
@@ -165,7 +165,7 @@ pbmc.markers <- FindAllMarkers(pbmc, only.pos = TRUE, min.pct = 0.25, logfc.thre
 pbmc.markers %>% group_by(cluster) %>% top_n(n = 2, wt = avg_logFC)
 ```
 
-#Visualize Marker Expression 
+# Visualize Marker Expression 
 
 ```{r vis marker exp}
 
