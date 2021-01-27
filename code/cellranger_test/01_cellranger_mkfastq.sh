@@ -1,4 +1,4 @@
-  #!/bin/bash -l
+#!/bin/bash -l
 #SBATCH -A snic2021-22-59
 #SBATCH -p core
 #SBATCH -n 2
@@ -12,4 +12,8 @@ module load bioinfo-tools
 module load cellranger
 
 #--- mkfastq -----------
-cellranger mkfastq
+cellranger mkfastq \
+ --id cellranger_test \
+ --run data/cellranger-tiny-bcl-1.2.0 \
+ --csv data/cellranger-tiny-bcl-simple-1.2.0.csv
+
