@@ -4,7 +4,7 @@
 # Rscript --vanilla demultiplex_seurat.R \
 # "path/to/filtered_feature_bc_matrix_RNA" \
 # "path/to/filtered_feature_bc_matrix_HT" \
-# "path/to/output_folder"
+# "output_file_name"
 
 library(Seurat)
 
@@ -12,14 +12,14 @@ library(Seurat)
 
 #args[1] = path/to/filtered_feature_bc_matrix_RNA
 #args[2] = path/to/filtered_feature_bc_matrix_HT 
-#args[3] = path/to/output_folder
+#args[3] = output_file_name
 
 args = commandArgs(trailingOnly=TRUE)
 
 if (length(args)<2) {
   stop("provide paths to RNA and HTO feature matrix", call.=FALSE)
 }else if(length(args)==2){
-  args[3] = getwd()
+  args[3] = "seurat_out"
 }
 
 #--- DATA ----------------------
@@ -55,5 +55,11 @@ data = NormalizeData(data, assay = "HTO", normalization.method = "CLR")
 #samples can be found in data@meta.data
 
 data = HTODemux(data, assay = "HTO", positive.quantile = 0.99)
+
+#--- SAVE ---------------------
+
+#save seurat object as RDS file 
+saveRDS(data, file = args[3])
+
 
 
