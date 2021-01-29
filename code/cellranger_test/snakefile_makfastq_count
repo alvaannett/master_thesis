@@ -1,0 +1,41 @@
+rule all:
+    input:
+        "filtered_feature_bc_matrix"
+
+rule run_makfastq:
+    input:
+        reads="data/cellranger-tiny-bcl-1.2.0",
+        sample_sheet="data/cellranger-tiny-bcl-simple-1.2.0.csv"
+    output:
+        o1="test_sample_S1_L001_I1_001.fastq.gz",
+        o2="test_sample_S1_L001_R1_001.fastq.gz",
+        o3="test_sample_S1_L001_R2_001.fastq.gz",
+    shell:
+        """
+        cellranger mkfastq \
+        --id  mkfastq_test \
+        --run {input.reads}\
+        --csv {input.sample_sheet}
+
+        touch {output.o1}
+        touch {output.o2}
+        touch {output.o3}
+       """
+
+rule run_count:
+    input:
+        "test_sample_S1_L001_I1_001.fastq.gz",
+        "test_sample_S1_L001_R1_001.fastq.gz",
+        "test_sample_S1_L001_R2_001.fastq.gz",
+        ref_genome="/crex/data/Chromium/cellranger-data/2020-A/refdata-gex-GRCh38-2020-A"
+    output:
+        "filtered_feature_bc_matrix"
+    shell:
+        """
+        cellranger count \
+         --id=count_test \
+         --fastqs=mkfastq_test/outs/fastq_path/ \
+         --transcriptome={input.ref_genome}
+
+        touch {output}
+        """
