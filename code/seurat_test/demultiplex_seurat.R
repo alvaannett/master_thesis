@@ -19,7 +19,7 @@ args = commandArgs(trailingOnly=TRUE)
 if (length(args)<2) {
   stop("provide paths to RNA and HTO feature matrix", call.=FALSE)
 }else if(length(args)==2){
-  args[3] = "seurat_out"
+  args[3] = "out"
 }
 
 #--- DATA ----------------------
