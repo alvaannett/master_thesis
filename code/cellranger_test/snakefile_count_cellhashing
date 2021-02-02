@@ -1,36 +1,48 @@
 rule all:
     input:
-        "filtered_feature_bc_matrix_gex",
-        "filtered_feature_bc_matrix_barcodes"
+        "rna_hto_data_demultiplex.rds"
 
-rule run_count_gex:
+rule run_count_rna:
     input:
         files="data/pbmc_1k_protein_v3_fastqs/pbmc_1k_protein_v3_gex_fastqs",
         ref_genome="/crex/data/Chromium/cellranger-data/2020-A/refdata-gex-GRCh38-2020-A"
     output:
-        "filtered_feature_bc_matrix_gex"
+        directory("filtered_feature_bc_matrix_rna")
     shell:
         """
         cellranger count \
-        --id=pbmc_gex \
+        --id=pbmc_rna \
         --fastqs={input.files} \
         --transcriptome={input.ref_genome}
 
-        touch {output}
+        cp -R pbmc_rna/outs/filtered_feature_bc_matrix out/{output}
         """
-rule run_count_barcode:
+rule run_count_hto:
     input:
         ref_genome="/crex/data/Chromium/cellranger-data/2020-A/refdata-gex-GRCh38-2020-A"
     output:
-        "filtered_feature_bc_matrix_barcodes"
+        directory("filtered_feature_bc_matrix_hto")
     shell:
         """
         cellranger count \
-        --id=pbmc_barcode \
+        --id=pbmc_hto \
         --libraries=data/pbmc_1k_protein_v3_library.csv \
         --feature-ref=data/pbmc_1k_protein_v3_feature_ref.csv \
         --transcriptome={input.ref_genome} \
         --expect-cells=1000
 
-        touch {output}
+        cp -R pbmc_hto/outs/filtered_feature_bc_matrix out/{output}
+        """
+rule demultiplex:
+    input:
+        matrix_rna="filtered_feature_bc_matrix_rna",
+        matrix_hto="filtered_feature_bc_matrix_hto"
+    output:
+        "rna_hto_data_demultiplex.rds"
+    shell:
+        """
+        Rscript --vanilla scripts\demultiplex_seurat.R \
+        out/{input.matrix_rna} \
+        out/{input.matrix_hto} \
+        out/{output}
         """
