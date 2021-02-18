@@ -1,7 +1,7 @@
 # cluster_config.yml - cluster configuration
 # submit as: 
 # snakemake \
-# --cluster "sbatch -A {cluster.account} -t {cluster.time} -p {cluster.partition} -N {cluster.nodes} --mail-type=ALL --mail.user {cluster.email}" \
+# --cluster "sbatch -A {cluster.account} -t {cluster.time} -p {cluster.partition} -N {cluster.nodes} -J {cluster.name} --mail-type=ALL --mail.user {cluster.email}" \
 # --cluster-config cluster_config.yml \
 # --jobs 3 
 
