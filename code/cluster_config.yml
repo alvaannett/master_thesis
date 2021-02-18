@@ -1,0 +1,15 @@
+# cluster_config.yml - cluster configuration
+# submit as: 
+# snakemake \
+# --cluster "sbatch -A {cluster.account} -t {cluster.time} -p {cluster.partition} -N {cluster.nodes} --mail-type=ALL --mail.user {cluster.email}" \
+# --cluster-config cluster_config.yml \
+# --jobs 3 
+
+__default__:
+    account: snic2021-22-59
+    partition: core
+    time: 24:00:00
+    nodes: 6
+    name: scATAC_pipeline
+    email: alva.annett.4036@student.uu.se
+    
